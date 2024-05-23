@@ -1,11 +1,15 @@
 import base64
-from flask import Flask, request, render_template_string, send_file
+from flask import Flask, request, render_template_string, send_file, jsonify
 import automatic1111 as sd
 options = {"sd_model_checkpoint":"AnythingXL_xl.safetensors [8421598e93]"}
 sd.set_options("sdapi/v1/options", **options)
 from io import BytesIO
+from collections import deque
 
 app = Flask(__name__)
+
+# Store the last 5 prompts
+last_prompts = deque(maxlen=5)
 
 HTML = """
 <!DOCTYPE html>
@@ -23,8 +27,7 @@ HTML = """
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 2rem;
-            width: 90%;
-            max-width: 600px;
+            width: 100%;
         }
         .textarea {
             background-color: #4a5568;
@@ -55,6 +58,14 @@ HTML = """
                     <li>sunflower field on a lakeside with blue sky, white clouds and birds, no humans</li>
                 </ul>
             </div>
+            <div class="text-gray-400 text-sm mt-2">
+                <p>Last 5 Prompts:</p>
+                <ul id="lastPrompts" class="list-disc list-inside">
+                    {% for prompt in last_prompts %}
+                        <li>{{ prompt }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
             <button type="submit" class="button w-full py-2 rounded-md text-xl">Submit</button>
         </form>
         <div id="spinner" class="hidden flex justify-center mt-4">
@@ -66,34 +77,44 @@ HTML = """
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            function updateLastPrompts(prompts) {
+                var list = $('#lastPrompts');
+                list.empty();
+                prompts.forEach(function(prompt) {
+                    list.append('<li>' + prompt + '</li>');
+                });
+            }
+
             $('#promptForm').submit(function(e) {
                 e.preventDefault();
                 console.log("Form submission started...");
                 $('#spinner').removeClass('hidden');
+                console.log($('#promptInput').val());
+
                 $.ajax({
                     type: 'POST',
                     url: '/submit',
-                    data: { prompt: $('#promptInput').val() },
+                    data: JSON.stringify({ prompt: $('#promptInput').val() }),
+                    contentType: 'application/json',
                     success: function(response) {
                         console.log("Data received successfully...");
                         console.log(response);
                         var img = $('<img />', { 
-                            src: URL.createObjectURL(response),
+                            src: 'data:image/png;base64,' + response.image,
                             alt: 'Generated Image',
                             class: 'w-full rounded-md mt-4'
                         });
                         $('#responseArea').html(img);
+                        updateLastPrompts(response.last_prompts);
                         $('#spinner').addClass('hidden');
                     },
-                    error: function() {
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.log("Error in form submission: ", textStatus, errorThrown);
                         $('#responseArea').html('<p class="text-red-500">Error in processing your request.</p>');
                         $('#spinner').addClass('hidden');
                     },
                     complete: function() {
                         console.log("Form submission completed.");
-                    },
-                    xhrFields: {
-                        responseType: 'blob'
                     }
                 });
             });
@@ -104,11 +125,10 @@ HTML = """
 """
 @app.route("/", methods=["GET"])
 def home():
-    return render_template_string(HTML)
-
+    return render_template_string(HTML, last_prompts=list(last_prompts))
 @app.route("/submit", methods=["POST"])
 def submit():
-    user_prompt = request.form.get("prompt", "")
+    user_prompt = request.json.get("prompt", "")
     base_prompt = "masterpiece, best quality, colorful and vibrant, landscape, extremely detailed, cozy, illustration, lofi, comforting to look at, "
     final_prompt = ""
     if not user_prompt:
@@ -116,9 +136,13 @@ def submit():
     else:
         final_prompt = base_prompt + user_prompt
     print(final_prompt)
+    
+    # Store the prompt in the deque
+    last_prompts.append(final_prompt)
+    
     payload = {
         "prompt": final_prompt,
-        "negative_prompt": "explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
+        "negative_prompt": "humans, explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
         "seed": -1,
         "steps": 20,
         "width": 1024,
@@ -137,10 +161,15 @@ def submit():
     # Convert the image data to a BytesIO object
     image_io = BytesIO(image_data)
     
-    # Return the image file as a file response
-    data = send_file(image_io, mimetype='image/png', as_attachment=True, download_name='image.png')
-    print("---------data returned from api 2---------")
-    return data
+    # Return the image as a base64 string and last prompts as JSON
+    image_base64 = base64.b64encode(image_io.getvalue()).decode('utf-8')
+    print("---------data returned from api2---------")
+    data = jsonify({
+        "image": image_base64,
+        "last_prompts": list(last_prompts)
+    })
+    print("---------data returned from api3---------")
+    return data 
     
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
