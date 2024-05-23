@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Submit Prompt</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Submit a Prompt</h1>
+    <form id="promptForm">
+        <input type="text" id="promptInput" name="prompt" placeholder="Enter your prompt">
+        <button type="submit">Submit</button>
+    </form>
+    <div id="spinner" class="hidden">Loading...</div>
+    <div id="responseArea"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#promptForm').submit(function(e) {
+                e.preventDefault();
+                $('#spinner').removeClass('hidden');
+                $.ajax({
+                    type: 'POST',
+                    url: '/submit',
+                    data: { prompt: $('#promptInput').val() },
+                    success: function(response) {
+                        $('#responseArea').html(response.response);
+                        $('#spinner').addClass('hidden');
+                    },
+                    error: function() {
+                        $('#responseArea').html('Error in processing your request.');
+                        $('#spinner').addClass('hidden');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
