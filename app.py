@@ -1,5 +1,4 @@
 import base64
-import zipfile
 from flask import Flask, request, render_template_string, send_file
 import automatic1111 as sd
 options = {"sd_model_checkpoint":"AnythingXL_xl.safetensors [8421598e93]"}
@@ -102,15 +101,8 @@ def submit():
     # Convert the image data to a BytesIO object
     image_io = BytesIO(image_data)
     
-    # Create a zip file in memory
-    zip_io = BytesIO()
-    with zipfile.ZipFile(zip_io, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        zip_file.writestr('image.png', image_io.getvalue())
-    
-    zip_io.seek(0)
-    
-    # Return the zip file as a file response
-    data = send_file(zip_io, mimetype='application/zip', as_attachment=True, download_name='image.zip')
+    # Return the image file as a file response
+    data = send_file(image_io, mimetype='image/png', as_attachment=True, download_name='image.png')
     print("---------data returned from api 2---------")
     return data
     
