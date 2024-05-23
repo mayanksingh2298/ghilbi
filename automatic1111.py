@@ -46,7 +46,6 @@ def call_api(api_endpoint, **payload):
         data=data,
     )
     response = urllib.request.urlopen(request)
-    print(response)
     return json.loads(response.read().decode('utf-8'))
 
 
@@ -65,21 +64,21 @@ def call_img2img_api(**payload):
         decode_and_save_base64(image, save_path)
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
 
-    options = {"sd_model_checkpoint":"AnythingXL_xl.safetensors [8421598e93]"}
-    set_options("sdapi/v1/options", **options)
-    payload = {
-        "prompt": "masterpiece, best quality, colorful and vibrant, landscape, extremely detailed, cozy illustration, illustration, lofi, comforting to look at, a very detailed coffee shop from outside, with a big tree next to it, blue sky, road with pebbles on it, much much detailed, a night scene",  # extra networks also in prompts
-        "negative_prompt": "explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
-        "seed": 1,
-        "steps": 20,
-        "width": 512,
-        "height": 1024,
-        "cfg_scale": 7,
-        "sampler_name": "Euler a",
-        "n_iter": 1,
-        "batch_size": 1,
-    }
-    call_txt2img_api(**payload)
+    # options = {"sd_model_checkpoint":"AnythingXL_xl.safetensors [8421598e93]"}
+    # set_options("sdapi/v1/options", **options)
+    # payload = {
+    #     "prompt": "masterpiece, best quality, colorful and vibrant, landscape, extremely detailed, cozy illustration, illustration, lofi, comforting to look at, a very detailed coffee shop from outside, with a big tree next to it, blue sky, road with pebbles on it, much much detailed, a night scene",  # extra networks also in prompts
+    #     "negative_prompt": "explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
+    #     "seed": 1,
+    #     "steps": 20,
+    #     "width": 52,
+    #     "height": 52,
+    #     "cfg_scale": 7,
+    #     "sampler_name": "Euler a",
+    #     "n_iter": 1,
+    #     "batch_size": 1,
+    # }
+    # call_txt2img_api(**payload)
