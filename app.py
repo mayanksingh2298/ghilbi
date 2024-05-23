@@ -138,7 +138,7 @@ def submit():
     print(final_prompt)
     
     # Store the prompt in the deque
-    last_prompts.append(final_prompt)
+    last_prompts.append(user_prompt)
     
     payload = {
         "prompt": final_prompt,
