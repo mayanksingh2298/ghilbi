@@ -66,6 +66,10 @@ HTML = """
                     {% endfor %}
                 </ul>
             </div>
+            <div class="flex items-center">
+                <input id="wallpaperCheckbox" type="checkbox" class="mr-2">
+                <label for="wallpaperCheckbox" class="text-gray-400 text-sm">Wallpaper size</label>
+            </div>
             <button type="submit" class="button w-full py-2 rounded-md text-xl">Submit</button>
         </form>
         <div id="spinner" class="hidden flex justify-center mt-4">
@@ -94,7 +98,10 @@ HTML = """
                 $.ajax({
                     type: 'POST',
                     url: '/submit',
-                    data: JSON.stringify({ prompt: $('#promptInput').val() }),
+                    data: JSON.stringify({ 
+                        prompt: $('#promptInput').val(),
+                        wallpaper: $('#wallpaperCheckbox').is(':checked')
+                    }),
                     contentType: 'application/json',
                     success: function(response) {
                         console.log("Data received successfully...");
@@ -129,6 +136,7 @@ def home():
 @app.route("/submit", methods=["POST"])
 def submit():
     user_prompt = request.json.get("prompt", "")
+    wallpaper = request.json.get("wallpaper", False)
     base_prompt = "masterpiece, best quality, colorful and vibrant, landscape, extremely detailed, cozy, illustration, lofi, comforting to look at, "
     final_prompt = ""
     if not user_prompt:
@@ -143,10 +151,10 @@ def submit():
     payload = {
         "prompt": final_prompt,
         "negative_prompt": "humans, explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
-        "seed": -1,
+        "seed": 1,
         "steps": 20,
-        "width": 1024,
-        "height": 1024,
+        "width": 945 if wallpaper else 1024,
+        "height": 2048 if wallpaper else 1024,
         "cfg_scale": 7,
         "sampler_name": "Euler a",
         "n_iter": 1,
