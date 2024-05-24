@@ -1,7 +1,7 @@
 import base64
 from flask import Flask, request, render_template_string, send_file, jsonify
 import automatic1111 as sd
-options = {"sd_model_checkpoint":"AnythingXL_xl.safetensors [8421598e93]"}
+options = {"sd_model_checkpoint":"counterfeitV30_v30.safetensors [cbfba64e66]"}
 sd.set_options("sdapi/v1/options", **options)
 from io import BytesIO
 from collections import deque
@@ -137,7 +137,7 @@ def home():
 def submit():
     user_prompt = request.json.get("prompt", "")
     wallpaper = request.json.get("wallpaper", False)
-    base_prompt = "masterpiece, best quality, colorful and vibrant, landscape, extremely detailed, cozy, illustration, lofi, comforting to look at, "
+    base_prompt = "masterpiece, best quality, colorful and vibrant, landscape, anime style, extremely detailed, cozy, illustration, lofi, comforting to look at, "
     final_prompt = ""
     if not user_prompt:
         final_prompt = base_prompt + "a very detailed coffee shop from outside, with a big tree next to it, blue sky, road with pebbles on it, much much detailed, a night scene"
@@ -159,6 +159,17 @@ def submit():
         "sampler_name": "Euler a",
         "n_iter": 1,
         "batch_size": 1,
+        "override_settings" :
+                            {
+                            "sd_hypernetwork" :
+                            None,
+                            "sd_lora" :
+                            None,
+                            "sd_model_checkpoint" :
+                            "counterfeitV30_v30.safetensors [cbfba64e66]",
+                            "sd_vae" :
+                            None
+                            },
     }
     base64Image = sd.call_txt2img_api(**payload)
     print("---------data returned from api---------")
