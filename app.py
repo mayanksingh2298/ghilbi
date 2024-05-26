@@ -1,8 +1,8 @@
 import base64
 from flask import Flask, request, render_template_string, send_file, jsonify
 import automatic1111 as sd
-options = {"sd_model_checkpoint":"counterfeitV30_v30.safetensors [cbfba64e66]"}
-sd.set_options("sdapi/v1/options", **options)
+# options = {"sd_model_checkpoint":"counterfeitV30_v30.safetensors [cbfba64e66]"}
+# sd.set_options("sdapi/v1/options", **options)
 from io import BytesIO
 from collections import deque
 
@@ -70,6 +70,10 @@ HTML = """
                 <input id="wallpaperCheckbox" type="checkbox" class="mr-2">
                 <label for="wallpaperCheckbox" class="text-gray-400 text-sm">Wallpaper size</label>
             </div>
+            <div class="flex items-center">
+                <input id="hiresCheckbox" type="checkbox" class="mr-2">
+                <label for="hiresCheckbox" class="text-gray-400 text-sm">Generate high resolution (takes more time)</label>
+            </div>
             <button type="submit" class="button w-full py-2 rounded-md text-xl">Submit</button>
         </form>
         <div id="spinner" class="hidden flex justify-center mt-4">
@@ -92,6 +96,14 @@ HTML = """
             $('#promptForm').submit(function(e) {
                 e.preventDefault();
                 console.log("Form submission started...");
+                
+                // Ensure only one checkbox is checked
+                if ($('#wallpaperCheckbox').is(':checked') && $('#hiresCheckbox').is(':checked')) {
+                    alert("You cannot select both 'Wallpaper size' and 'Generate high resolution' options together.");
+                    $('#spinner').addClass('hidden');
+                    return;
+                }
+
                 $('#spinner').removeClass('hidden');
                 console.log($('#promptInput').val());
 
@@ -100,7 +112,8 @@ HTML = """
                     url: '/submit',
                     data: JSON.stringify({ 
                         prompt: $('#promptInput').val(),
-                        wallpaper: $('#wallpaperCheckbox').is(':checked')
+                        wallpaper: $('#wallpaperCheckbox').is(':checked'),
+                        hires: $('#hiresCheckbox').is(':checked')
                     }),
                     contentType: 'application/json',
                     success: function(response) {
@@ -137,7 +150,8 @@ def home():
 def submit():
     user_prompt = request.json.get("prompt", "")
     wallpaper = request.json.get("wallpaper", False)
-    base_prompt = "masterpiece, best quality, colorful and vibrant, landscape, anime style, extremely detailed, cozy, illustration, lofi, comforting to look at, "
+    hires = request.json.get("hires", False)
+    base_prompt = "masterpiece, intricate details, hyperdetailed, hdr, best quality, colorful and vibrant, landscape, anime style, extremely detailed, cozy, illustration, lofi, comforting to look at, "
     final_prompt = ""
     if not user_prompt:
         final_prompt = base_prompt + "a very detailed coffee shop from outside, with a big tree next to it, blue sky, road with pebbles on it, much much detailed, a night scene"
@@ -147,30 +161,48 @@ def submit():
     
     # Store the prompt in the deque
     last_prompts.append(user_prompt)
-    
+    ########################
+    ##### AnythingXL_xl
+    # payload = {
+    #     "seed": 1,
+    #     "steps": 20,
+    #     "width": 945 if wallpaper else 1024,
+    #     "height": 2048 if wallpaper else 1024,
+    #     "cfg_scale": 7,
+    #     "sampler_name": "Euler a",
+    #     "n_iter": 1,
+    #     "batch_size": 1,
+    #     "override_settings" :{"sd_hypernetwork" :None,
+    #                         "sd_lora" :None,
+    #                         "sd_model_checkpoint" :"AnythingXL_xl.safetensors [8421598e93]",
+    #                         "sd_vae" :None
+    #                     },
+    # }
+    ##### dreamshaperXL_v21TurboDPMSDE
     payload = {
-        "prompt": final_prompt,
-        "negative_prompt": "humans, explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
         "seed": 1,
-        "steps": 20,
+        "steps": 8,
         "width": 945 if wallpaper else 1024,
         "height": 2048 if wallpaper else 1024,
-        "cfg_scale": 7,
-        "sampler_name": "Euler a",
+        "enable_hr" : hires,
+        "hr_upscaler" : "Latent",
+        "denoising_strength" : 0.7,
+        "hr_scale" : 2,
+        "negative_prompt" : "humans, explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
+        "hr_negative_prompt" : "humans, explicit, sensitive, nsfw, low quality, worst quality, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name",
+        "cfg_scale": 2,
+        "sampler_name": "DPM++ SDE",
         "n_iter": 1,
         "batch_size": 1,
-        "override_settings" :
-                            {
-                            "sd_hypernetwork" :
-                            None,
-                            "sd_lora" :
-                            None,
-                            "sd_model_checkpoint" :
-                            "counterfeitV30_v30.safetensors [cbfba64e66]",
-                            "sd_vae" :
-                            None
-                            },
+        "override_settings" :{"sd_hypernetwork" :None,
+                            "sd_lora" :None,
+                            "sd_model_checkpoint" :"dreamshaperXL_v21TurboDPMSDE.safetensors [4496b36d48]",
+                            "sd_vae" :None
+                        },
     }
+    ##########################
+    payload["prompt"] = final_prompt
+    payload["hr_prompt"] = final_prompt
     base64Image = sd.call_txt2img_api(**payload)
     print("---------data returned from api---------")
     
