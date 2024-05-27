@@ -151,7 +151,7 @@ def submit():
     user_prompt = request.json.get("prompt", "")
     wallpaper = request.json.get("wallpaper", False)
     hires = request.json.get("hires", False)
-    base_prompt = "masterpiece, intricate details, hyperdetailed, hdr, best quality, colorful and vibrant, landscape, anime style, extremely detailed, cozy, illustration, lofi, comforting to look at, "
+    base_prompt = "studio ghilbi, masterpiece, detailed, hdr, best quality, colorful and vibrant, landscape, anime style, cozy, illustration, lofi, comforting to look at, "
     final_prompt = ""
     if not user_prompt:
         final_prompt = base_prompt + "a very detailed coffee shop from outside, with a big tree next to it, blue sky, road with pebbles on it, much much detailed, a night scene"
